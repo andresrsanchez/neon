@@ -16,6 +16,7 @@ from fixtures.neon_fixtures import (
     wait_for_last_record_lsn,
     wait_for_upload,
     wait_until,
+    testing_supported,
 )
 from fixtures.types import Lsn, TenantId, TimelineId
 from fixtures.utils import query_scalar
@@ -40,6 +41,7 @@ from fixtures.utils import query_scalar
 # The tests are done for all types of remote storage pageserver supports.
 @pytest.mark.parametrize("remote_storage_kind", available_remote_storages())
 def test_remote_storage_backup_and_restore(
+    testing_supported,
     neon_env_builder: NeonEnvBuilder,
     remote_storage_kind: RemoteStorageKind,
 ):

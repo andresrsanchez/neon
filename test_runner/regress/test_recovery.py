@@ -2,13 +2,13 @@ import time
 from contextlib import closing
 
 from fixtures.log_helper import log
-from fixtures.neon_fixtures import NeonEnvBuilder
+from fixtures.neon_fixtures import NeonEnvBuilder, testing_supported
 
 
 #
 # Test pageserver recovery after crash
 #
-def test_pageserver_recovery(neon_env_builder: NeonEnvBuilder):
+def test_pageserver_recovery(testing_supported, neon_env_builder: NeonEnvBuilder):
     # Override default checkpointer settings to run it more often
     neon_env_builder.pageserver_config_override = "tenant_config={checkpoint_distance = 1048576}"
 
@@ -17,9 +17,6 @@ def test_pageserver_recovery(neon_env_builder: NeonEnvBuilder):
     # Check if failpoints enables. Otherwise the test doesn't make sense
     f = env.neon_cli.pageserver_enabled_features()
 
-    assert (
-        "testing" in f["features"]
-    ), "Build pageserver with --features=testing option to run this test"
     neon_env_builder.start()
 
     # Create a branch for us

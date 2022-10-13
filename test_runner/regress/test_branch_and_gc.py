@@ -3,7 +3,7 @@ import time
 
 import pytest
 from fixtures.log_helper import log
-from fixtures.neon_fixtures import NeonEnv
+from fixtures.neon_fixtures import NeonEnv, testing_supported
 from fixtures.types import Lsn
 from fixtures.utils import query_scalar
 
@@ -112,7 +112,7 @@ def test_branch_and_gc(neon_simple_env: NeonEnv):
 # and prevent creating branches with invalid starting LSNs.
 #
 # For more details, see discussion in https://github.com/neondatabase/neon/pull/2101#issuecomment-1185273447.
-def test_branch_creation_before_gc(neon_simple_env: NeonEnv):
+def test_branch_creation_before_gc(testing_supported, neon_simple_env: NeonEnv):
     env = neon_simple_env
     pageserver_http_client = env.pageserver.http_client()
 

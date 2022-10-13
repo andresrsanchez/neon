@@ -1,5 +1,5 @@
 from fixtures.log_helper import log
-from fixtures.neon_fixtures import NeonEnvBuilder
+from fixtures.neon_fixtures import NeonEnvBuilder, testing_supported
 from fixtures.types import TimelineId
 from fixtures.utils import query_scalar
 
@@ -7,7 +7,7 @@ from fixtures.utils import query_scalar
 #
 # Create ancestor branches off the main branch.
 #
-def test_ancestor_branch(neon_env_builder: NeonEnvBuilder):
+def test_ancestor_branch(testing_supported, neon_env_builder: NeonEnvBuilder):
     env = neon_env_builder.init_start()
     pageserver_http = env.pageserver.http_client()
 

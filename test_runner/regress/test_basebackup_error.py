@@ -1,12 +1,11 @@
 import pytest
-from fixtures.neon_fixtures import NeonEnv
-
+from fixtures.neon_fixtures import NeonEnv, testing_supported
 
 #
 # Test error handling, if the 'basebackup' command fails in the middle
 # of building the tar archive.
 #
-def test_basebackup_error(neon_simple_env: NeonEnv):
+def test_basebackup_error(testing_supported, neon_simple_env: NeonEnv):
     env = neon_simple_env
     env.neon_cli.create_branch("test_basebackup_error", "empty")
     pageserver_http = env.pageserver.http_client()

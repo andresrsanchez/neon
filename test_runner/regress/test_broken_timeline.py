@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 import pytest
 from fixtures.log_helper import log
-from fixtures.neon_fixtures import NeonEnv, NeonEnvBuilder, Postgres
+from fixtures.neon_fixtures import NeonEnv, NeonEnvBuilder, Postgres, testing_supported
 from fixtures.types import TenantId, TimelineId
 
 
@@ -111,7 +111,7 @@ def test_create_multiple_timelines_parallel(neon_simple_env: NeonEnv):
             future.result()
 
 
-def test_fix_broken_timelines_on_startup(neon_simple_env: NeonEnv):
+def test_fix_broken_timelines_on_startup(testing_supported, neon_simple_env: NeonEnv):
     env = neon_simple_env
     pageserver_http = env.pageserver.http_client()
 

@@ -148,9 +148,27 @@ def pytest_configure(config):
     if not os.path.exists(os.path.join(neon_binpath, "pageserver")):
         raise Exception('neon binaries not found at "{}"'.format(neon_binpath))
 
+@pytest.fixture(scope="session")
+def is_testing_supported():
+    """Return True if the pageserver was compiled with the 'testing' feature"""
+    return pageserver_version_contains("testing:true")
 
-def profiling_supported():
+@pytest.fixture
+def testing_supported(is_testing_supported):
+    if not is_testing_supported:
+        pytest.skip("pageserver was built without 'testing' feature")
+
+@pytest.fixture(scope="session")
+def is_profiling_supported():
     """Return True if the pageserver was compiled with the 'profiling' feature"""
+    return pageserver_version_contains("profiling:true")
+
+@pytest.fixture
+def profiling_supported(is_profiling_supported):
+    if not is_profiling_supported:
+        pytest.skip("pageserver was built without 'profiling' feature")
+
+def pageserver_version_contains(f): 
     bin_pageserver = os.path.join(str(neon_binpath), "pageserver")
     res = subprocess.run(
         [bin_pageserver, "--version"],
@@ -159,8 +177,7 @@ def profiling_supported():
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-    return "profiling:true" in res.stdout
-
+    return f in res.stdout
 
 def shareable_scope(fixture_name, config) -> Literal["session", "function"]:
     """Return either session of function scope, depending on TEST_SHARED_FIXTURES envvar.
@@ -171,7 +188,6 @@ def shareable_scope(fixture_name, config) -> Literal["session", "function"]:
        ...
     """
     return "function" if os.environ.get("TEST_SHARED_FIXTURES") is None else "session"
-
 
 @pytest.fixture(scope="session")
 def worker_seq_no(worker_id: str):

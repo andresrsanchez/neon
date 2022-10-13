@@ -13,12 +13,12 @@ from fixtures.neon_fixtures import (
     NeonEnvBuilder,
     RemoteStorageKind,
     available_remote_storages,
+    testing_supported
 )
 from fixtures.types import Lsn, TenantId, TimelineId
 from prometheus_client.samples import Sample
 
-
-def test_tenant_creation_fails(neon_simple_env: NeonEnv):
+def test_tenant_creation_fails(testing_supported, neon_simple_env: NeonEnv):
     tenants_dir = Path(neon_simple_env.repo_dir) / "tenants"
     initial_tenants = sorted(
         map(lambda t: t.split()[0], neon_simple_env.neon_cli.list_tenants().stdout.splitlines())
