@@ -1,0 +1,68 @@
+# syntax=docker/dockerfile:1.4
+ FROM alpine as pgbuild
+ COPY vendor/postgres-v14 vendor/postgres-v14
+ COPY vendor/postgres-v15 vendor/postgres-v15
+ COPY pgxn pgxn
+ COPY Makefile Makefile
+ COPY scripts/ninstall.sh scripts/ninstall.sh
+ 
+ ENV BUILD_TYPE release
+ RUN set -e \
+     && apk update \
+     && apk add tree file bash cmake make bison flex clang linux-headers openssl-dev libseccomp-dev readline-dev musl-dev zlib-dev g++ clang-static perl llvm13-dev libffi-dev \
+     && make -j $(nproc) -s neon-pg-ext \
+     && rm -rf pg_install/build \
+     && tar -C pg_install -czf ./postgres_install.tar.gz . 
+
+FROM messense/rust-musl-cross:x86_64-musl AS builder
+COPY --from=pgbuild /pg_install/v14/include/postgresql/server /home/rust/src/pg_install/v14/include/postgresql/server
+COPY --from=pgbuild /pg_install/v15/include/postgresql/server /home/rust/src/pg_install/v15/include/postgresql/server
+COPY . .
+ARG GIT_VERSION=local
+
+RUN --mount=type=cache,id=registry-cache,target=/root/.cargo/registry \
+    --mount=type=cache,id=git-cache,target=/root/.cargo/git \
+    --mount=type=cache,id=target-cache,sharing=locked,target=/home/rust/src/target \
+    set -e \
+    && rm -rf ./rust-toolchain.toml \
+    && cargo build --timings --bin pageserver --bin pageserver_binutils --bin safekeeper --bin proxy --locked --release --target x86_64-unknown-linux-musl \
+    && mkdir /home/rust/build \
+    && mv target/x86_64-unknown-linux-musl/release/pageserver /home/rust/build/pageserver \
+    && mv target/x86_64-unknown-linux-musl/release/pageserver_binutils /home/rust/build/pageserver_binutils \
+    && mv target/x86_64-unknown-linux-musl/release/safekeeper /home/rust/build/safekeeper \
+    && mv target/x86_64-unknown-linux-musl/release/proxy /home/rust/build/proxy \
+    && mv target/cargo-timings /home/rust/build/cargo-timings
+
+FROM alpine
+WORKDIR /data
+
+RUN set -e \
+    && apk --no-cache add ca-certificates openssl readline-dev libseccomp-dev \
+    && adduser --disabled-password -h /data neon \
+    && chown -R neon:neon /data 
+
+COPY --from=builder --chown=neon:neon /home/rust/build/pageserver          /usr/local/bin
+COPY --from=builder --chown=neon:neon /home/rust/build/pageserver_binutils /usr/local/bin
+COPY --from=builder --chown=neon:neon /home/rust/build/safekeeper          /usr/local/bin
+COPY --from=builder --chown=neon:neon /home/rust/build/proxy               /usr/local/bin
+COPY --from=builder --chown=neon:neon /home/rust/build/cargo-timings               /usr/local/bin
+
+COPY --from=pgbuild /pg_install/v14 /usr/local/v14/
+COPY --from=pgbuild /pg_install/v15 /usr/local/v15/
+COPY --from=pgbuild /postgres_install.tar.gz /data/
+
+# By default, pageserver uses `.neon/` working directory in WORKDIR, so create one and fill it with the dummy config.
+# Now, when `docker run ... pageserver` is run, it can start without errors, yet will have some default dummy values.
+RUN mkdir -p /data/.neon/ && chown -R neon:neon /data/.neon/ \
+    && /usr/local/bin/pageserver -D /data/.neon/ --init \
+       -c "id=1234" \
+       -c "broker_endpoints=['http://etcd:2379']" \
+       -c "pg_distrib_dir='/usr/local/'" \
+       -c "listen_pg_addr='0.0.0.0:6400'" \
+       -c "listen_http_addr='0.0.0.0:9898'"
+
+VOLUME ["/data"]
+USER neon
+EXPOSE 6400
+EXPOSE 9898
+

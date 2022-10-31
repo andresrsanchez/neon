@@ -15,7 +15,7 @@ set -euo pipefail
 #
 # See https://github.com/neondatabase/neon/issues/1873
 if [ "$#" == "5" ]; then
-  if [ "$1" == "-C" ] && [ "$2" == "-m" ] && [ "$3" == "644" ]; then
+  if [ "$1" == "-c" ] && [ "$2" == "-m" ] && [ "$3" == "644" ]; then
     if [ -e "$5" ] && diff -q "$4" "$5" >/dev/null 2>&1; then
       exit 0
     fi
