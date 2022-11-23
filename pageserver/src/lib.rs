@@ -40,7 +40,6 @@ pub const STORAGE_FORMAT_VERSION: u16 = 3;
 pub const DEFAULT_PG_VERSION: u32 = 14;
 
 // Magic constants used to identify different kinds of files
-//
 pub const IMAGE_FILE_MAGIC: u16 = 0x5A60;
 pub const DELTA_FILE_MAGIC: u16 = 0x5A61;
 
