@@ -25,6 +25,6 @@ jobs:
           context: .
           push: false
           file: ./Dockerfile.lel
-          cache-from: type=gha, scope=${{ github.workflow }}
           tags: user/app:latest
-          cache-to: type=gha, scope=${{ github.workflow }},mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
