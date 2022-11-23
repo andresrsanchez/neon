@@ -20,9 +20,9 @@ COPY --from=pgbuild /pg_install/v15/include/postgresql/server /home/rust/src/pg_
 COPY . .
 ARG GIT_VERSION=local
 
-RUN --mount=type=cache,id=registry-cache,target=/root/.cargo/registry \
-    --mount=type=cache,id=git-cache,target=/root/.cargo/git \
-    --mount=type=cache,id=target-cache,sharing=locked,target=/home/rust/src/target \
+RUN --mount=type=cache,target=/root/.cargo/registry \
+    --mount=type=cache,target=/root/.cargo/git \
+    --mount=type=cache,sharing=locked,target=/home/rust/src/target \
     set -e \
     && rm -rf ./rust-toolchain.toml \
     && cargo build --timings --bin pageserver --bin pageserver_binutils --bin safekeeper --bin proxy --locked --release --target x86_64-unknown-linux-musl \
