@@ -46,7 +46,7 @@ jobs:
         with:
           context: .
           builder: ${{ steps.buildx.outputs.name }}
-          file: ./Dockerfile.lel
+          file: ./Dockerfile.lil
           # Set the desired build target here
           push: false
           tags: ${{ steps.prep.outputs.tagged_image }}

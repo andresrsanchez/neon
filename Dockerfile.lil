@@ -46,8 +46,6 @@ RUN rm /app/compute_tools/src/lib.rs
 RUN rm /app/workspace_hack/src/lib.rs
 RUN rm /app/control_plane/src/lib.rs
 
-COPY --from=pgbuild /pg_install/v14/include/postgresql/server /app/pg_install/v14/include/postgresql/server
-COPY --from=pgbuild /pg_install/v15/include/postgresql/server /app/pg_install/v15/include/postgresql/server
 COPY pageserver /app/pageserver
 COPY safekeeper /app/safekeeper
 COPY proxy /app/proxy
