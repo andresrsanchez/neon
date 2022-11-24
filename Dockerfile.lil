@@ -1,0 +1,62 @@
+FROM alpine as pgbuild
+COPY vendor/postgres-v14 vendor/postgres-v14
+COPY vendor/postgres-v15 vendor/postgres-v15
+COPY pgxn pgxn
+COPY Makefile Makefile
+COPY scripts/ninstall.sh scripts/ninstall.sh
+
+ENV BUILD_TYPE release
+RUN set -e \
+ && apk update \
+ && apk add tree file bash cmake make bison flex clang linux-headers openssl-dev libseccomp-dev readline-dev musl-dev zlib-dev g++ clang-static perl libffi-dev \
+ && make -j $(nproc) -s neon-pg-ext \
+ && rm -rf pg_install/build \
+ && tar -C pg_install -czf ./postgres_install.tar.gz . 
+
+
+FROM messense/rust-musl-cross:x86_64-musl AS builder
+WORKDIR /app
+COPY Cargo.toml /app
+COPY Cargo.lock /app
+
+COPY libs /app/libs
+COPY pageserver/Cargo.toml /app/pageserver/Cargo.toml
+COPY safekeeper/Cargo.toml /app/safekeeper/Cargo.toml
+COPY proxy/Cargo.toml /app/proxy/Cargo.toml
+COPY compute_tools/Cargo.toml /app/compute_tools/Cargo.toml
+COPY workspace_hack/Cargo.toml /app/workspace_hack/Cargo.toml
+COPY control_plane/Cargo.toml /app/control_plane/Cargo.toml
+
+RUN mkdir /app/proxy/src && echo "fn main() {}" > /app/proxy/src/main.rs
+RUN mkdir /app/safekeeper/src && echo "fn main() {}" > /app/safekeeper/src/lib.rs
+RUN mkdir /app/pageserver/src && echo "fn main() {}" > /app/pageserver/src/lib.rs
+RUN mkdir /app/compute_tools/src && echo "fn main() {}" > /app/compute_tools/src/lib.rs
+RUN mkdir /app/workspace_hack/src && echo "fn main() {}" > /app/workspace_hack/src/lib.rs
+RUN mkdir /app/control_plane/src && echo "fn main() {}" > /app/control_plane/src/lib.rs
+
+COPY --from=pgbuild /pg_install/v14/include/postgresql/server /app/pg_install/v14/include/postgresql/server
+COPY --from=pgbuild /pg_install/v15/include/postgresql/server /app/pg_install/v15/include/postgresql/server
+
+RUN cargo build --locked --release --target x86_64-unknown-linux-musl 
+
+RUN rm /app/proxy/src/main.rs
+RUN rm /app/safekeeper/src/lib.rs
+RUN rm /app/pageserver/src/lib.rs
+RUN rm /app/compute_tools/src/lib.rs
+RUN rm /app/workspace_hack/src/lib.rs
+RUN rm /app/control_plane/src/lib.rs
+
+COPY --from=pgbuild /pg_install/v14/include/postgresql/server /app/pg_install/v14/include/postgresql/server
+COPY --from=pgbuild /pg_install/v15/include/postgresql/server /app/pg_install/v15/include/postgresql/server
+COPY pageserver /app/pageserver
+COPY safekeeper /app/safekeeper
+COPY proxy /app/proxy
+COPY compute_tools /app/compute_tools/
+COPY workspace_hack /app/workspace_hack/
+COPY control_plane /app/control_plane/
+ARG GIT_VERSION=local
+
+RUN set -e \
+    && rm -rf ./rust-toolchain.toml \
+    && cargo build --bin safekeeper --locked --release --target x86_64-unknown-linux-musl \
+    #&& cargo build --timings --bin pageserver --bin pageserver_binutils --bin safekeeper --bin proxy --locked --release --target x86_64-unknown-linux-musl \
